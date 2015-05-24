@@ -12,7 +12,7 @@ namespace EndpointClient
             Console.WriteLine("Press any key to start");
             Console.ReadLine();
             var cts = new CancellationTokenSource();
-            System.Console.CancelKeyPress += (s, e) =>
+            Console.CancelKeyPress += (s, e) =>
             {
                 e.Cancel = true;
                 cts.Cancel();
@@ -24,11 +24,8 @@ namespace EndpointClient
 
         private static async Task RunAsync(CancellationToken token)
         {
-            var main = new Main();
-            await main.ServiceCallsAsync();
-            await main.HttpCallsAsync();
+            await EndpointClient.Main.ServiceCallsAsync();
+            await EndpointClient.Main.HttpCallsAsync();
         }
-
-       
     }
 }

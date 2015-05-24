@@ -1,4 +1,7 @@
-﻿using System.ServiceModel;
+﻿using System.Net.Http;
+using System.Net.Http.Headers;
+using System.ServiceModel;
+using System.Text;
 using System.Threading.Tasks;
 using Contracts;
 using Newtonsoft.Json;
@@ -6,9 +9,10 @@ using proactima.jsonobject;
 
 namespace EndpointClient
 {
-    public class Main
+    public static class Main
     {
-        private const string ServiceUrl = "net.tcp://127.0.0.1:90/LoanCalculator";
+        private const string ServiceUrl = "net.tcp://127.0.0.1:91/LoanCalculator";
+        private const string HttpUrl = "http://127.0.0.1:81/json/";
         private const int Counter = 3;
 
         private static IStoreAndLoadJson GetAProxy()
@@ -21,7 +25,7 @@ namespace EndpointClient
                 (binding, endpointAddress).CreateChannel();
         }
 
-        public async Task ServiceCallsAsync()
+        public static async Task ServiceCallsAsync()
         {
             var proxy = GetAProxy();
 
@@ -43,9 +47,33 @@ namespace EndpointClient
             }
         }
 
-        public Task HttpCallsAsync()
+        public static async Task HttpCallsAsync()
         {
-            throw new System.NotImplementedException();
+            var proxy = new HttpClient();
+            System.Console.WriteLine("Store some values");
+            var json = new JsonObject
+            {
+                {"title", "service"}
+            };
+            var jsonString = JsonConvert.SerializeObject(json);
+            for (var i = 0; i < Counter; i++)
+                await proxy.PutAsync(HttpUrl+i, CreateStringContent(jsonString));
+
+
+            System.Console.WriteLine("Load values back");
+            for (var i = 0; i < Counter; i++)
+            {
+                var result = await proxy.GetStringAsync(HttpUrl + i);
+                var obj = JsonObject.Parse(result);
+                System.Console.WriteLine(obj);
+            }
+        }
+
+        private static StringContent CreateStringContent(string jsonString)
+        {
+            var stringContent = new StringContent(jsonString);
+            stringContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+            return stringContent;
         }
     }
 }
