@@ -1,6 +1,5 @@
 ﻿using System.ServiceModel;
 using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
 using proactima.jsonobject;
 
 namespace Contracts
@@ -9,8 +8,9 @@ namespace Contracts
     public interface IStoreAndLoadJson
     {
         [OperationContract]
-        Task<JsonObject> LoadAsync(string id);
+        Task<Response> LoadAsync(string id);
+
         [OperationContract]
-        Task<JsonObject> StoreAsync(string id, string obj);
+        Task<JsonObject> StoreAsync(string id, JsonObject obj);
     }
 }

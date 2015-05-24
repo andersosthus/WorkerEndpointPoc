@@ -1,7 +1,10 @@
-﻿using System.Net.Http;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using System.ServiceModel;
-using System.Text;
 using System.Threading.Tasks;
 using Contracts;
 using Newtonsoft.Json;
@@ -13,7 +16,7 @@ namespace EndpointClient
     {
         private const string ServiceUrl = "net.tcp://127.0.0.1:91/LoanCalculator";
         private const string HttpUrl = "http://127.0.0.1:81/json/";
-        private const int Counter = 3;
+        private const int Counter = 5;
 
         private static IStoreAndLoadJson GetAProxy()
         {
@@ -28,45 +31,72 @@ namespace EndpointClient
         public static async Task ServiceCallsAsync()
         {
             var proxy = GetAProxy();
+            await proxy.StoreAsync("0", new JsonObject());
+            await proxy.LoadAsync("0");
+            var ids = CreateIds("service");
+            var json = CreateJsonObject();
+            Console.WriteLine("Running Service {0} times", Counter);
+            var watch = Stopwatch.StartNew();
+          
 
-            System.Console.WriteLine("Store some values");
-            var json = new JsonObject
-            {
-                {"title", "service"}
-            };
-            var jsonString = JsonConvert.SerializeObject(json);
-            for (var i = 0; i < Counter; i++)
-                await proxy.StoreAsync("service" + i, jsonString);
+            await Task.WhenAll(ids
+                .Select(i => proxy.StoreAsync("service" + i, json)));
 
+            await Task.WhenAll(ids
+                .Select(i => proxy.LoadAsync("service" + i)));
 
-            System.Console.WriteLine("Load values back");
-            for (var i = 0; i < Counter; i++)
-            {
-                var result = await proxy.LoadAsync("service" + i);
-                System.Console.WriteLine(result);
-            }
+            watch.Stop();
+            Console.WriteLine("Net.Tcp took: " + watch.Elapsed);
         }
 
         public static async Task HttpCallsAsync()
         {
             var proxy = new HttpClient();
-            System.Console.WriteLine("Store some values");
+            var ids = CreateIds("http");
+            var json = CreateJsonObject();
+
+            await proxy.PutAsync(HttpUrl + "0", CreateStringContent(JsonConvert.SerializeObject(json)));
+            await proxy.GetStringAsync(HttpUrl + "0");
+
+            Console.WriteLine("Running Http {0} times", Counter);
+            var watch = Stopwatch.StartNew();
+            var jsonString = JsonConvert.SerializeObject(json);
+
+            await Task.WhenAll(ids
+                .Select(i => proxy.PutAsync(HttpUrl + i, CreateStringContent(jsonString))));
+
+            var stringResults = await Task.WhenAll(ids
+                .Select(i => proxy.GetStringAsync(HttpUrl + i)));
+
+            var objs = stringResults.Select(result => JsonObject.Parse(result));
+
+            watch.Stop();
+            Console.WriteLine("Http took: " + watch.Elapsed);
+        }
+
+        private static JsonObject CreateJsonObject()
+        {
             var json = new JsonObject
             {
-                {"title", "service"}
+                {"title", "service"},
+                {"title1", "service"},
+                {"title2", "service"},
+                {"title3", "service"},
+                {"title4", "service"},
+                {"title5", "service"},
+                {"title6", "service"},
+                {"title7", "service"},
+                {"title8", "service"},
+                {"title9", "service"},
+                {"title10", "service"},
+                {"title11", "service"},
             };
-            var jsonString = JsonConvert.SerializeObject(json);
-            for (var i = 0; i < Counter; i++)
-                await proxy.PutAsync(HttpUrl+i, CreateStringContent(jsonString));
+            return json;
+        }
 
-
-            System.Console.WriteLine("Load values back");
-            for (var i = 0; i < Counter; i++)
-            {
-                var result = await proxy.GetStringAsync(HttpUrl + i);
-                var obj = JsonObject.Parse(result);
-                System.Console.WriteLine(obj);
-            }
+        private static IList<string> CreateIds(string name)
+        {
+            return Enumerable.Range(1, Counter).Select(c => String.Format("{0}_{1}", name, c)).ToList();
         }
 
         private static StringContent CreateStringContent(string jsonString)

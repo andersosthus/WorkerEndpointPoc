@@ -6,7 +6,6 @@ namespace EndpointClient
 {
     class Program
     {
-
         static void Main(string[] args)
         {
             Console.WriteLine("Press any key to start");
@@ -19,7 +18,8 @@ namespace EndpointClient
             };
 
             RunAsync(cts.Token).Wait(cts.Token);
- 
+            Console.WriteLine("Press any key to exit");
+            Console.ReadLine();
         }
 
         private static async Task RunAsync(CancellationToken token)
