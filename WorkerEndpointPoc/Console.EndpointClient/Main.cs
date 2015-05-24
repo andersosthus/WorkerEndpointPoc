@@ -135,20 +135,7 @@ namespace EndpointClient
                 {"title7", "service"},
                 {"title8", "service"},
                 {"title9", "service"},
-                {"title10", "service"},
-                {
-                    "withsubs", new[]
-                    {
-                        new JsonObject
-                        {
-                            {"sub1", 100}
-                        },
-                        new JsonObject
-                        {
-                            {"sub2", 200}
-                        }
-                    }
-                },
+                {"title10", "service"}
             };
             return json;
         }
