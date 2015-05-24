@@ -7,6 +7,8 @@ using System.Net.Http.Headers;
 using System.ServiceModel;
 using System.Threading.Tasks;
 using Contracts;
+using EndpointPoc;
+using MsgPack.Serialization;
 using Newtonsoft.Json;
 using proactima.jsonobject;
 
@@ -15,25 +17,61 @@ namespace EndpointClient
     public static class Main
     {
         private const string ServiceUrl = "net.tcp://127.0.0.1:91/StoreAndLoadJson";
-        private const string HttpUrl = "http://127.0.0.1:81/json/";
-        private const int Counter = 1000;
+        private const string JsonHttpUrl = "http://127.0.0.1:81/json/";
+        private const string BsonHttpUrl = "http://127.0.0.1:81/bson/";
+        private const int Counter = 100;
 
-        private static IStoreAndLoadJson GetAProxy()
+        public static async Task MsgPackHttpCallsAsync()
         {
-            var binding = new NetTcpBinding(SecurityMode.None)
-            {
-                OpenTimeout = TimeSpan.FromMinutes(10),
-                SendTimeout = TimeSpan.FromMinutes(10),
-                MaxConnections = 5000,
-                ListenBacklog = 5000,
-                PortSharingEnabled = false
-            };
-            var endpointAddress = new EndpointAddress(ServiceUrl);
+            var proxy = new HttpClient();
+            var serializer = MessagePackSerializer.Get<JsonObject>();
 
-            var channelFactory = new ChannelFactory<IStoreAndLoadJson>
-                (binding, endpointAddress);
-            var channel = channelFactory.CreateChannel();
-            return channel;
+            var json = CreateJsonObject();
+            var putRequest = new HttpRequestMessage(HttpMethod.Put, BsonHttpUrl + "0")
+            {
+                Content = new ObjectContent<JsonObject>(json,
+                    new MessagePackMediaTypeFormatter())
+            };
+            putRequest.Content.Headers.ContentType.MediaType = "application/x-msgpack";
+            var putResult = await proxy.SendAsync(putRequest);
+            var putStream = await putResult.Content.ReadAsStreamAsync();
+            var input = serializer.Unpack(putStream);
+
+            var getRequest = new HttpRequestMessage(HttpMethod.Get, BsonHttpUrl + "0");
+            getRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/x-msgpack"));
+
+            var result = proxy.SendAsync(getRequest).Result;
+            var getStream = await result.Content.ReadAsStreamAsync();
+            var data = serializer.Unpack(getStream);
+            var ids = CreateIds("bson");
+            Console.WriteLine("Running Bson {0} times", Counter);
+            var watch = Stopwatch.StartNew();
+
+            await Task.WhenAll(ids
+               .Select(i =>
+               {
+                   var t = new HttpRequestMessage(HttpMethod.Put, BsonHttpUrl + "0")
+                   {
+                       Content = new ObjectContent<JsonObject>(json,
+                           new MessagePackMediaTypeFormatter())
+                   };
+                   t.Content.Headers.ContentType.MediaType = "application/x-msgpack";
+                   return proxy.SendAsync(t);
+               }));
+
+            var res = await Task.WhenAll(ids
+                .Select(i =>
+                {
+                    var g = new HttpRequestMessage(HttpMethod.Get, BsonHttpUrl + "0");
+                    g.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/x-msgpack"));
+                    return proxy.SendAsync(g);
+                }));
+
+            var content = await Task.WhenAll(res.Select(r => r.Content.ReadAsStreamAsync()));
+            var end = content.Select(serializer.Unpack).ToList();
+
+            watch.Stop();
+            Console.WriteLine("Bson took: " + watch.Elapsed);
         }
 
         public static async Task ServiceCallsAsync()
@@ -62,20 +100,20 @@ namespace EndpointClient
             var ids = CreateIds("http");
             var json = CreateJsonObject();
 
-            await proxy.PutAsync(HttpUrl + "0", CreateStringContent(JsonConvert.SerializeObject(json)));
-            await proxy.GetStringAsync(HttpUrl + "0");
+            await proxy.PutAsync(JsonHttpUrl + "0", CreateStringContent(JsonConvert.SerializeObject(json)));
+            await proxy.GetStringAsync(JsonHttpUrl + "0");
 
             Console.WriteLine("Running Http {0} times", Counter);
             var watch = Stopwatch.StartNew();
 
             await Task.WhenAll(ids
-                .Select(i => proxy.PutAsync(HttpUrl + i, CreateStringContent(JsonConvert.SerializeObject(json)))));
+                .Select(i => proxy.PutAsync(JsonHttpUrl + i, CreateStringContent(JsonConvert.SerializeObject(json)))));
 
             var stringResults = await Task.WhenAll(ids
-                .Select(i => proxy.GetStringAsync(HttpUrl + i)));
+                .Select(i => proxy.GetStringAsync(JsonHttpUrl + i)));
 
             var objs = stringResults.Select(result => JsonObject.Parse(result)).ToList();
-            
+
 
             watch.Stop();
             if (objs.Count != Counter)
@@ -98,9 +136,39 @@ namespace EndpointClient
                 {"title8", "service"},
                 {"title9", "service"},
                 {"title10", "service"},
-                {"title11", "service"},
+                {
+                    "withsubs", new[]
+                    {
+                        new JsonObject
+                        {
+                            {"sub1", 100}
+                        },
+                        new JsonObject
+                        {
+                            {"sub2", 200}
+                        }
+                    }
+                },
             };
             return json;
+        }
+
+        private static IStoreAndLoadJson GetAProxy()
+        {
+            var binding = new NetTcpBinding(SecurityMode.None)
+            {
+                OpenTimeout = TimeSpan.FromMinutes(10),
+                SendTimeout = TimeSpan.FromMinutes(10),
+                MaxConnections = 5000,
+                ListenBacklog = 5000,
+                PortSharingEnabled = false
+            };
+            var endpointAddress = new EndpointAddress(ServiceUrl);
+
+            var channelFactory = new ChannelFactory<IStoreAndLoadJson>
+                (binding, endpointAddress);
+            var channel = channelFactory.CreateChannel();
+            return channel;
         }
 
         private static IList<string> CreateIds(string name)

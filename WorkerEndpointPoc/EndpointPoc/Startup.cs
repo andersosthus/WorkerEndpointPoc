@@ -7,14 +7,14 @@ namespace EndpointPoc
     {
         public void Configuration(IAppBuilder app)
         {
-            //app.UseNinjectMiddlewareForWebApi(() => kernel, config, new HttpServer(config));
-
             var config = new HttpConfiguration();
             config.Routes.MapHttpRoute(
                "DefaultApi",
                "{controller}/{id}",
                new { id = RouteParameter.Optional });
-            
+
+            config.Formatters.Add(new MessagePackMediaTypeFormatter()); 
+
             var server = new HttpServer(config);
             app.UseWebApi(server);
         }

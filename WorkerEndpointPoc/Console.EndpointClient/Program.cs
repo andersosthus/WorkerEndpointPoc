@@ -24,6 +24,7 @@ namespace EndpointClient
 
         private static async Task RunAsync(CancellationToken token)
         {
+            await EndpointClient.Main.MsgPackHttpCallsAsync();
             await EndpointClient.Main.ServiceCallsAsync();
             await EndpointClient.Main.HttpCallsAsync();
         }

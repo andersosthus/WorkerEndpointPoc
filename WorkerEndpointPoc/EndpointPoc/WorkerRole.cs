@@ -68,14 +68,14 @@ namespace EndpointPoc
 
             var binding = new NetTcpBinding(SecurityMode.None)
             {
-                MaxConnections = 500,
+                MaxConnections = 5000,
                 PortSharingEnabled = false,
-                ListenBacklog = 500
+                ListenBacklog = 5000
             };
 
             var externalEndPoint =
                 RoleEnvironment.CurrentRoleInstance.InstanceEndpoints["TCP"];
-            var endpoint = String.Format("net.tcp://{0}/LoanCalculator",
+            var endpoint = String.Format("net.tcp://{0}/StoreAndLoadJson",
                 externalEndPoint.IPEndpoint);
             var startupMessage = String.Format("Starting OWIN at {0}", endpoint);
 
