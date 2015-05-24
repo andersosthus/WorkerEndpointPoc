@@ -1,8 +1,11 @@
 using System;
 using System.Diagnostics;
 using System.Net;
+using System.ServiceModel;
 using System.Threading;
 using System.Threading.Tasks;
+using Contracts;
+using EndpointPoc.Services;
 using Microsoft.Owin.Hosting;
 using Microsoft.WindowsAzure.ServiceRuntime;
 
@@ -10,10 +13,11 @@ namespace EndpointPoc
 {
     public class WorkerRole : RoleEntryPoint
     {
-        private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-        private readonly ManualResetEvent runCompleteEvent = new ManualResetEvent(false);
+        private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+        private readonly ManualResetEvent _runCompleteEvent = new ManualResetEvent(false);
 
-        private IDisposable _app = null;
+        private IDisposable _app;
+        private ServiceHost _serviceHost;
 
         public override void Run()
         {
@@ -21,11 +25,11 @@ namespace EndpointPoc
 
             try
             {
-                RunAsync(cancellationTokenSource.Token).Wait();
+                RunAsync(_cancellationTokenSource.Token).Wait();
             }
             finally
             {
-                runCompleteEvent.Set();
+                _runCompleteEvent.Set();
             }
         }
 
@@ -39,26 +43,49 @@ namespace EndpointPoc
 
             bool result = base.OnStart();
 
-            var endpoint = RoleEnvironment.CurrentRoleInstance.InstanceEndpoints["HTTP"];
-            var baseUri = String.Format("{0}://{1}",
-                endpoint.Protocol, endpoint.IPEndpoint);
-
-            var startupMessage = String.Format("Starting OWIN at {0}", baseUri);
-            Trace.TraceInformation(startupMessage, "Information");
-
-            _app = WebApp.Start<Startup>(new StartOptions(baseUri));
+            CreateWebHost();
+            CreateServiceHost();
 
             Trace.TraceInformation("EndpointPoc has been started");
 
             return result;
         }
 
+        private void CreateWebHost()
+        {
+            var externalEndPoint = RoleEnvironment.CurrentRoleInstance.InstanceEndpoints["HTTP"];
+            var endpoint = String.Format("{0}://{1}",
+                externalEndPoint.Protocol, externalEndPoint.IPEndpoint);
+
+            var startupMessage = String.Format("Starting OWIN at {0}", endpoint);
+            Trace.TraceInformation(startupMessage, "Information");
+            _app = WebApp.Start<Startup>(new StartOptions(endpoint));
+        }
+
+        private void CreateServiceHost()
+        {
+            _serviceHost = new ServiceHost(typeof (JsonService));
+
+            var binding = new NetTcpBinding(SecurityMode.None);
+            var externalEndPoint =
+                RoleEnvironment.CurrentRoleInstance.InstanceEndpoints["TCP"];
+            var endpoint = String.Format("net.tcp://{0}/LoanCalculator",
+                externalEndPoint.IPEndpoint);
+            var startupMessage = String.Format("Starting OWIN at {0}", endpoint);
+
+            Trace.TraceInformation(startupMessage, "Information");
+
+            _serviceHost.AddServiceEndpoint(typeof (IStoreAndLoadJson), binding, endpoint);
+            _serviceHost.Open();
+        }
+
         public override void OnStop()
         {
             Trace.TraceInformation("EndpointPoc is stopping");
 
-            cancellationTokenSource.Cancel();
-            runCompleteEvent.WaitOne();
+            _cancellationTokenSource.Cancel();
+            _runCompleteEvent.WaitOne();
+            _app.Dispose();
 
             base.OnStop();
 
@@ -67,11 +94,10 @@ namespace EndpointPoc
 
         private async Task RunAsync(CancellationToken cancellationToken)
         {
-            // TODO: Replace the following with your own logic.
             while (!cancellationToken.IsCancellationRequested)
             {
                 Trace.TraceInformation("Working");
-                await Task.Delay(1000);
+                await Task.Delay(1000, cancellationToken);
             }
         }
     }
