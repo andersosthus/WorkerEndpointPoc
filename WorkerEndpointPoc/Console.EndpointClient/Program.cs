@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Contracts;
+using ProtoBuf.Meta;
 
 namespace EndpointClient
 {
@@ -17,6 +19,8 @@ namespace EndpointClient
                 cts.Cancel();
             };
 
+            RuntimeTypeModel.Default.Add(typeof(ProtoObj), false).SetSurrogate(typeof(ProtoObjSurrogate));
+
             RunAsync(cts.Token).Wait(cts.Token);
             Console.WriteLine("Press any key to exit");
             Console.ReadLine();
@@ -27,6 +31,7 @@ namespace EndpointClient
             await EndpointClient.Main.MsgPackHttpCallsAsync();
             await EndpointClient.Main.ServiceCallsAsync();
             await EndpointClient.Main.HttpCallsAsync();
+            await EndpointClient.Main.ProtoCallsAsync();
         }
     }
 }

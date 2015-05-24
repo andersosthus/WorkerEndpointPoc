@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -11,14 +12,16 @@ using EndpointPoc;
 using MsgPack.Serialization;
 using Newtonsoft.Json;
 using proactima.jsonobject;
+using ProtoBuf;
 
 namespace EndpointClient
 {
     public static class Main
     {
         private const string ServiceUrl = "net.tcp://127.0.0.1:91/StoreAndLoadJson";
-        private const string JsonHttpUrl = "http://127.0.0.1:81/json/";
-        private const string BsonHttpUrl = "http://127.0.0.1:81/bson/";
+        private const string JsonHttpUrl = "http://127.0.0.1:90/json/";
+        private const string BsonHttpUrl = "http://127.0.0.1:90/bson/";
+        private const string ProtoBufHttpUrl = "http://127.0.0.1:90/proto/";
         private const int Counter = 100;
 
         public static async Task MsgPackHttpCallsAsync()
@@ -121,6 +124,41 @@ namespace EndpointClient
             Console.WriteLine("Http took: " + watch.Elapsed);
         }
 
+        public static async Task ProtoCallsAsync()
+        {
+            var proxy = new HttpClient();
+            var ids = CreateIds("proto");
+            var proto = CreateProtoObject();
+            
+            var bytes = proto.Serialize();
+
+            await proxy.PutAsync(ProtoBufHttpUrl + "0", CreateByteContent(bytes));
+            await proxy.GetByteArrayAsync(ProtoBufHttpUrl + "0");
+
+            Console.WriteLine("Running Proto {0} times", Counter);
+            var watch = Stopwatch.StartNew();
+
+            await Task.WhenAll(ids
+               .Select(i => proxy.PutAsync(ProtoBufHttpUrl + i, CreateByteContent(bytes))));
+
+            var byteResults = await Task.WhenAll(ids
+                .Select(i => proxy.GetByteArrayAsync(ProtoBufHttpUrl + i)));
+
+            var objs = byteResults.Select(ProtoObj.Deserialize).ToList();
+
+            watch.Stop();
+            if (objs.Count != Counter)
+                Console.WriteLine("funky...");
+            Console.WriteLine("ProtoBuf took: " + watch.Elapsed);
+        }
+
+        private static ProtoObj CreateProtoObject()
+        {
+            var obj = new ProtoObj(CreateJsonObject());
+
+            return obj;
+        }
+
         private static JsonObject CreateJsonObject()
         {
             var json = new JsonObject
@@ -168,6 +206,14 @@ namespace EndpointClient
             var stringContent = new StringContent(jsonString);
             stringContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             return stringContent;
+        }
+
+        private static ByteArrayContent CreateByteContent(byte[] content)
+        {
+            var byteContent = new ByteArrayContent(content);
+            byteContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+            return byteContent;
+
         }
     }
 }

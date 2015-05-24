@@ -1,5 +1,7 @@
 using System.Web.Http;
+using Contracts;
 using Owin;
+using ProtoBuf.Meta;
 
 namespace EndpointPoc
 {
@@ -7,6 +9,8 @@ namespace EndpointPoc
     {
         public void Configuration(IAppBuilder app)
         {
+            RuntimeTypeModel.Default.Add(typeof(ProtoObj), false).SetSurrogate(typeof(ProtoObjSurrogate));
+
             var config = new HttpConfiguration();
             config.Routes.MapHttpRoute(
                "DefaultApi",

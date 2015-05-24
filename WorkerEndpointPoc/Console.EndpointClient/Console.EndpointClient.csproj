@@ -9,10 +9,11 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>EndpointClient</RootNamespace>
     <AssemblyName>Console.EndpointClient</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -41,11 +42,17 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\packages\Newtonsoft.Json.6.0.8\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
-    <Reference Include="proactima.jsonobject">
-      <HintPath>..\packages\Proactima.Jsonobject.1.0.7\lib\Portable-Win80+Wpa81+net45\proactima.jsonobject.dll</HintPath>
+    <Reference Include="proactima.jsonobject.common, Version=1.0.7.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Proactima.Jsonobject.1.0.7\lib\net451\proactima.jsonobject.common.dll</HintPath>
+      <Private>True</Private>
     </Reference>
-    <Reference Include="proactima.jsonobject.common">
-      <HintPath>..\packages\Proactima.Jsonobject.1.0.7\lib\Portable-Win80+Wpa81+net45\proactima.jsonobject.common.dll</HintPath>
+    <Reference Include="proactima.jsonobject.net, Version=1.0.7.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Proactima.Jsonobject.1.0.7\lib\net451\proactima.jsonobject.net.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="protobuf-net, Version=2.0.0.668, Culture=neutral, PublicKeyToken=257b51d87d2e4d67, processorArchitecture=MSIL">
+      <HintPath>..\packages\protobuf-net.2.0.0.668\lib\net40\protobuf-net.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
