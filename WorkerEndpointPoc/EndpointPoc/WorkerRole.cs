@@ -1,14 +1,10 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.WindowsAzure;
-using Microsoft.WindowsAzure.Diagnostics;
+using Microsoft.Owin.Hosting;
 using Microsoft.WindowsAzure.ServiceRuntime;
-using Microsoft.WindowsAzure.Storage;
 
 namespace EndpointPoc
 {
@@ -17,17 +13,19 @@ namespace EndpointPoc
         private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
         private readonly ManualResetEvent runCompleteEvent = new ManualResetEvent(false);
 
+        private IDisposable _app = null;
+
         public override void Run()
         {
             Trace.TraceInformation("EndpointPoc is running");
 
             try
             {
-                this.RunAsync(this.cancellationTokenSource.Token).Wait();
+                RunAsync(cancellationTokenSource.Token).Wait();
             }
             finally
             {
-                this.runCompleteEvent.Set();
+                runCompleteEvent.Set();
             }
         }
 
@@ -41,6 +39,15 @@ namespace EndpointPoc
 
             bool result = base.OnStart();
 
+            var endpoint = RoleEnvironment.CurrentRoleInstance.InstanceEndpoints["HTTP"];
+            var baseUri = String.Format("{0}://{1}",
+                endpoint.Protocol, endpoint.IPEndpoint);
+
+            var startupMessage = String.Format("Starting OWIN at {0}", baseUri);
+            Trace.TraceInformation(startupMessage, "Information");
+
+            _app = WebApp.Start<Startup>(new StartOptions(baseUri));
+
             Trace.TraceInformation("EndpointPoc has been started");
 
             return result;
@@ -50,8 +57,8 @@ namespace EndpointPoc
         {
             Trace.TraceInformation("EndpointPoc is stopping");
 
-            this.cancellationTokenSource.Cancel();
-            this.runCompleteEvent.WaitOne();
+            cancellationTokenSource.Cancel();
+            runCompleteEvent.WaitOne();
 
             base.OnStop();
 

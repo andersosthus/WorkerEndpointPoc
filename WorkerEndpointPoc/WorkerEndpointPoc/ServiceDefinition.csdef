@@ -1,4 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ServiceDefinition name="WorkerEndpointPoc" xmlns="http://schemas.microsoft.com/ServiceHosting/2008/10/ServiceDefinition" schemaVersion="2014-06.2.4">
-  <WorkerRole name="EndpointPoc" vmsize="Small" />
+  <WorkerRole name="EndpointPoc" vmsize="Small">
+    <Endpoints>
+      <InputEndpoint name="HTTP" protocol="http" port="80" localPort="80" />
+    </Endpoints>
+  </WorkerRole>
 </ServiceDefinition>
