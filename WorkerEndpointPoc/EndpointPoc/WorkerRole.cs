@@ -66,7 +66,13 @@ namespace EndpointPoc
         {
             _serviceHost = new ServiceHost(typeof (JsonService));
 
-            var binding = new NetTcpBinding(SecurityMode.None);
+            var binding = new NetTcpBinding(SecurityMode.None)
+            {
+                MaxConnections = 500,
+                PortSharingEnabled = false,
+                ListenBacklog = 500
+            };
+
             var externalEndPoint =
                 RoleEnvironment.CurrentRoleInstance.InstanceEndpoints["TCP"];
             var endpoint = String.Format("net.tcp://{0}/LoanCalculator",

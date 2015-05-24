@@ -1,9 +1,11 @@
-﻿using System.Threading.Tasks;
+﻿using System.ServiceModel;
+using System.Threading.Tasks;
 using Contracts;
 using proactima.jsonobject;
 
 namespace EndpointPoc.Services
 {
+    [ServiceBehavior(ConcurrencyMode = ConcurrencyMode.Multiple, UseSynchronizationContext = false)]
     public class JsonService : IStoreAndLoadJson
     {
         public async Task<Response> LoadAsync(string id)
